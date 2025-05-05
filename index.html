@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Golf Ball Detector</title>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #f2f2f2; }
+    #webcam-container { margin-top: 20px; }
+    #label-container { font-size: 2rem; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Green Peak - Ball Detector</h1>
+  <div id="webcam-container"></div>
+  <div id="label-container"></div>
+
+  <script type="text/javascript">
+    const URL = "./";
+    let model, webcam, labelContainer, maxPredictions;
+
+    async function init() {
+      const modelURL = URL + "model.json";
+      const metadataURL = URL + "metadata.json";
+
+      model = await tmImage.load(modelURL, metadataURL);
+      maxPredictions = model.getTotalClasses();
+
+      webcam = new tmImage.Webcam(400, 400, true); // width, height, flip
+      await webcam.setup(); // request access
+      await webcam.play();
+      window.requestAnimationFrame(loop);
+
+      document.getElementById("webcam-container").appendChild(webcam.canvas);
+      labelContainer = document.getElementById("label-container");
+    }
+
+    async function loop() {
+      webcam.update(); // update webcam frame
+      await predict();
+      window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+      const prediction = await model.predict(webcam.canvas);
+      let label = "";
+
+      prediction.forEach(pred => {
+        if (pred.className === "Golf Ball" && pred.probability > 0.85) {
+          label = "✅ Make!";
+        } else if (pred.className === "No Golf Ball" && pred.probability > 0.85) {
+          label = "❌ Miss!";
+        }
+      });
+
+      labelContainer.innerHTML = label;
+    }
+
+    init();
+  </script>
+</body>
+</html>
