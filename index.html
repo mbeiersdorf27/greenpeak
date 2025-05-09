@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Green Peak - Golf Ball Detector</title>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f2f2f2;
+    }
+    #webcam-container {
+      margin-top: 20px;
+    }
+    #label-container {
+      font-size: 2rem;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Green Peak - Golf Ball Detector</h1>
+  <div id="webcam-container"></div>
+  <div id="label-container">Loading model...</div>
+
+  <script type="text/javascript">
+    const modelURL = "https://mbeiersdorf27.github.io/greenpeak/model.json";
+    const metadataURL = "https://mbeiersdorf27.github.io/greenpeak/metadata.json";
+
+    let model, webcam, labelContainer, maxPredictions;
+
+    async function init() {
+      try {
+        // Load the model and metadata
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        // Setup the webcam
+        webcam = new tmImage.Webcam(400, 400, true); // width, height, flip
+        await webcam.setup();
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = "Model ready! Looking for ball...";
+      } catch (err) {
+        labelContainer = document.getElementById("label-container");
+        labelContainer.innerHTML = "❌ Error loading model. Check your files or links.";
+        console.error("Model load error:", err);
+      }
+    }
+
+    async function loop() {
+      webcam.update();
+      await predict();
+      window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+      const prediction = await model.predict(webcam.canvas);
+      let result = "❌ Miss!";
+
+      prediction.forEach(pred => {
+        if (pred.className === "Golf Ball" && pred.probability > 0.85) {
+          result = "✅ Make!";
+        }
+      });
+
+      labelContainer.innerHTML = result;
+    }
+
+    init();
+  </script>
+</body>
+</html>
